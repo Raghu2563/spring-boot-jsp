@@ -2,8 +2,15 @@ pipeline {
     agent any
 
     tools {
-        maven 'v3.8.2'
+        maven 'v3.8.2' // Ensure Maven is configured in Jenkins
     }
+
+    environment {
+        NEXUS_URL = 'http://<NEXUS_SERVER_IP>:8081/repository/maven-releases/' // Update with Nexus URL
+        NEXUS_CREDENTIALS = credentials('nexus-credentials') // Jenkins credentials for Nexus
+        SONARQUBE_SERVER = 'SonarQube' // SonarQube server configured in Jenkins
+    }
+
     parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
         string(name: 'SERVER_IP', defaultValue: '127.0.0.1', description: 'Provide production server IP Address.')
@@ -12,14 +19,20 @@ pipeline {
     stages {
         stage('Source') {
             steps {
-                git branch: 'batch8', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/Raghu2563/spring-boot-jsp/'
+                git branch: 'batch8', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/ajilraju/spring-boot-jsp.git'
             }
         }
-        stage('Validate') {
+        
+        stage('Code Analysis') {
             steps {
-                sh 'mvn validate'
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
             }
         }
+        
         stage('Test') {
             parallel {
                 stage('Unit Test') {
@@ -29,37 +42,50 @@ pipeline {
                 }
                 stage('Integration Test') {
                     steps {
-                        echo 'Doing integration test' // Just for demonstration of the parallel job.
+                        echo 'Running integration tests' // Placeholder for actual integration test commands
                     }
                 }
             }
         }
+
         stage('Build') {
             steps {
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
-        stage('Publishing and Deployment') {
-            stages {
-                stage('Publishing Artifacts') {
-                    steps {
-                        archiveArtifacts artifacts: 'target/news-v*.jar', fingerprint: true, onlyIfSuccessful: true
-                    }
+
+        stage('Publish to Nexus') {
+            steps {
+                script {
+                    def version = sh(script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
+                    echo "Artifact Version: ${version}"
+                    
+                    // Deploy artifact to Nexus
+                    sh """
+                        mvn deploy:deploy-file \
+                            -DgroupId=com.example \
+                            -DartifactId=news-app \
+                            -Dversion=${version} \
+                            -Dpackaging=jar \
+                            -Dfile=target/news-${version}.jar \
+                            -DrepositoryId=nexus \
+                            -Durl=${NEXUS_URL}
+                    """
                 }
-                stage('Deploying to EC2') {
-                    when {
-                        expression { return params.PROD_BUILD }
-                    }
-                    steps {
-                        // credentialsId is different from your current key, please change it accordingly
-                        withCredentials([sshUserPrivateKey(credentialsId: 'deployment-key', keyFileVariable: 'SSHKEY', usernameVariable: 'SSHUSER')]) {
-                            sh '''
-                                version=$(perl -nle 'print "$2" if /<(version>)(v(\\d\\.){2}\\d)<\\/\\1/' pom.xml)
-                                rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i ${SSHKEY}" target/news-${version}.jar ${SSHUSER}@${SERVER_IP}:/home/headless-newsapp/newsapp/
-                                ssh -o StrictHostKeyChecking=no -i ${SSHKEY} ${SSHUSER}@${SERVER_IP} sudo /usr/bin/systemctl restart newsapp.service
-                            '''
-                        }
-                    }
+            }
+        }
+
+        stage('Deploy to EC2') {
+            when {
+                expression { return params.PROD_BUILD }
+            }
+            steps {
+                withCredentials([sshUserPrivateKey(credentialsId: 'deployment-key', keyFileVariable: 'SSHKEY', usernameVariable: 'SSHUSER')]) {
+                    sh '''
+                        version=$(perl -nle 'print "$2" if /<(version>)(v(\\d\\.){2}\\d)<\\/\\1/' pom.xml)
+                        rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i ${SSHKEY}" target/news-${version}.jar ${SSHUSER}@${params.SERVER_IP}:/home/headless-newsapp/newsapp/
+                        ssh -o StrictHostKeyChecking=no -i ${SSHKEY} ${SSHUSER}@${params.SERVER_IP} sudo /usr/bin/systemctl restart newsapp.service
+                    '''
                 }
             }
         }

@@ -13,13 +13,13 @@ pipeline {
 
     parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
-        string(name: 'SERVER_IP', defaultValue: '127.0.0.1', description: 'Provide production server IP Address.')
+        string(name: 'SERVER_IP', defaultValue: '15.206.89.145', description: 'Provide production server IP Address.')
     }
 
     stages {
         stage('Source') {
             steps {
-                git branch: 'batch8', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/Raghu2563/spring-boot-jsp'
+                git branch: 'raghu', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/Raghu2563/spring-boot-jsp'
             }
         }
         

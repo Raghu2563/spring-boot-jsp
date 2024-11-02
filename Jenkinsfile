@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NEXUS_URL = 'http://<NEXUS_SERVER_IP>:8081/repository/maven-releases/' // Update with Nexus URL
+        NEXUS_URL = 'http://13.127.55.176:8081/repository/springboot-app-releases/' // Update with Nexus URL
         NEXUS_CREDENTIALS = credentials('nexus-credentials') // Jenkins credentials for Nexus
         SONARQUBE_SERVER = 'SonarQube' // SonarQube server configured in Jenkins
     }

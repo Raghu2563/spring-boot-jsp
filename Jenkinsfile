@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Source') {
             steps {
-                git branch: 'batch8', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/ajilraju/spring-boot-jsp.git'
+                git branch: 'batch8', changelog: false, credentialsId: 'github', poll: false, url: 'https://github.com/Raghu2563/spring-boot-jsp/'
             }
         }
         stage('Validate') {

@@ -72,9 +72,5 @@
             <id>nexus-releases</id>
             <url>http://13.127.55.176:8081/repository/springboot-app-releases/</url>
         </repository>
-        <snapshotRepository>
-            <id>nexus-snapshots</id>
-            <url>http://13.127.55.176:8081/repository/springboot-app-snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
+   </distributionManagement>
 </project>

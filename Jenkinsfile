@@ -11,10 +11,10 @@ pipeline {
         SONARQUBE_SERVER = 'SonarQube' // SonarQube server configured in Jenkins
     }
 
-   /* parameters {
+    parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
-        string(name: 'SERVER_IP', defaultValue: '13.201.85.177', description: 'Provide production server IP Address.')
-    }*/
+        // string(name: 'SERVER_IP', defaultValue: '13.201.85.177', description: 'Provide production server IP Address.')
+    }
 
     stages {
         stage('Source') {

@@ -99,7 +99,7 @@ stage('Deploy to EC2') {
                 echo "Extracted Version: $version"
 
                 # Use rsync to copy the artifact
-                rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i $SSHKEY" target/news-${version}.jar ${USER}@13.201.85.177:/home/deploy/java-app/
+                rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i $SSHKEY" target/news-v${version}.jar ${USER}@13.201.85.177:/home/deploy/java-app/
 
                 # Restart the service on the remote server
                 ssh -o StrictHostKeyChecking=no -i $SSHKEY ${USER}@13.201.85.177 "sudo /usr/bin/systemctl restart java-app.service"

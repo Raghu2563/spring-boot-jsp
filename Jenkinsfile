@@ -94,8 +94,8 @@ stage('Deploy to EC2') {
     steps {
         withCredentials([sshUserPrivateKey(credentialsId: 'pk_jv_app', keyFileVariable: 'SSHKEY', usernameVariable: 'USER')]) {
             sh '''
-                # Extract the first version without the leading 'v'
-                version=$(perl -nle 'print $1 if /<version>(v?(\d+\.\d+\.\d+))<\\/version>/ && !$found++' pom.xml)
+                # Extract version without the leading 'v'
+                version=$(perl -nle 'print "$2" if /<version>(v?((\\d\\.){2}\\d))<\\/version>/' pom.xml | head -n 1)
                 echo "Extracted Version: $version"
 
                 # Use rsync to copy the artifact

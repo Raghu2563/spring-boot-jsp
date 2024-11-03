@@ -11,10 +11,10 @@ pipeline {
         SONARQUBE_SERVER = 'SonarQube' // SonarQube server configured in Jenkins
     }
 
-    parameters {
+   /* parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
         string(name: 'SERVER_IP', defaultValue: '13.201.85.177', description: 'Provide production server IP Address.')
-    }
+    }*/
 
     stages {
         stage('Source') {
@@ -58,38 +58,59 @@ pipeline {
         }
 
        stage('Publish to Nexus') {
-            steps {
-                script {
-                    // Extract the version from the Maven project
-                    def version = sh(script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
-                    echo "Artifact Version: ${version}"
+    steps {
+        script {
+            // Extract the version from the Maven project
+            def version = sh(script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
+            echo "Artifact Version: ${version}"
 
-                    // Use the nexusArtifactUploader to deploy to Nexus
-                    nexusArtifactUploader artifacts: [[artifactId: 'testapp', classifier: '', file: 'target/news-v*.jar', type: 'jar']], credentialsId: 'nexus-credentials', groupId: 'org.springframework.boot', nexusUrl: '3.110.77.23:8081/repository/springboot-app-releases/', nexusVersion: 'nexus3', protocol: 'http', repository: 'springboot-app-releases', version: '2.3.2.RELEASE'
-                }
-            }
+            // Construct the dynamic artifactId and file name
+            def artifactId = "news-${version}.jar"
+            def nexusFilePath = "target/${artifactId}"
+
+            // Use the nexusArtifactUploader to deploy to Nexus
+            nexusArtifactUploader artifacts: [[
+                artifactId: 'testapp',  // This can also be made dynamic if needed
+                classifier: '',
+                file: nexusFilePath,
+                type: 'jar'
+            ]],
+            credentialsId: 'nexus-credentials',
+            groupId: 'org.springframework.boot',
+            nexusUrl: '3.110.77.23:8081/repository/springboot-app-releases/',  // Ensure http is included
+            nexusVersion: 'nexus3',
+            protocol: 'http',
+            repository: 'springboot-app-releases',
+            version: version  // Use the dynamic version from the Maven project
         }
+    }
+}
 
-        stage('Deploy to EC2') {
-            when {
-                expression { return params.PROD_BUILD }
-            }
-            steps {
-                     withCredentials([sshUserPrivateKey(credentialsId: 'pk_jv_app', keyFileVariable: 'SSHKEY', usernameVariable: 'USER')]) {
-                      sh '''
-                      # Extract the version from pom.xml
-                     version=$(perl -nle 'print "$2" if /<(version>)(v(\\d\\.){2}\\d)<\\/\\1/' pom.xml)
-                      echo "Extracted Version: $version"
 
-                     rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i $SSHKEY" target/news-${version}.jar ${SSHUSER}@${params.SERVER_IP}:/home/deploy/java-app/
-ssh -o StrictHostKeyChecking=no -i ${SSHUSER}@${params.SERVER_IP} "sudo /usr/bin/systemctl restart java-app.service"
-                      '''
-                      }
-            
+ stage('Deploy to EC2') {
+    when {
+        expression { return params.PROD_BUILD }
+    }
+    steps {
+        withCredentials([sshUserPrivateKey(credentialsId: 'pk_jv_app', keyFileVariable: 'SSHKEY', usernameVariable: 'USER')]) {
+            sh '''
+                # Extract version without the leading 'v'
+                version=$(perl -nle 'print "$2" if /<version>(v?((\\d\\.){2}\\d))<\\/version>/' pom.xml)
+                echo "Extracted Version: $version"
 
-                }
-            }
+                # Use rsync to copy the artifact
+                rsync -avzP -e "ssh -o StrictHostKeyChecking=no -i $SSHKEY" target/news-${version}.jar ${USER}@13.201.85.177:/home/deploy/java-app/
+
+                # Restart the service on the remote server
+                ssh -o StrictHostKeyChecking=no -i $SSHKEY ${USER}@13.201.85.177 "sudo /usr/bin/systemctl restart java-app.service"
+            '''
         }
+    }
+}
+
+
+
+}
 
     
 }

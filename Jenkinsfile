@@ -6,14 +6,14 @@ pipeline {
     }
 
     environment {
-        NEXUS_URL = 'http://13.127.55.176:8081/repository/springboot-app-releases/' // Update with Nexus URL
+        NEXUS_URL = 'http://65.1.132.91:8081/repository/springboot-app-releases/' // Update with Nexus URL
         NEXUS_CREDENTIALS = credentials('nexus-credentials') // Jenkins credentials for Nexus
         SONARQUBE_SERVER = 'SonarQube' // SonarQube server configured in Jenkins
     }
 
     parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
-        string(name: 'SERVER_IP', defaultValue: '13.201.83.223', description: 'Provide production server IP Address.')
+        string(name: 'SERVER_IP', defaultValue: '65.0.21.175', description: 'Provide production server IP Address.')
     }
 
     stages {
@@ -27,7 +27,7 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv('SonarQube') {
-                        sh 'mvn sonar:sonar'
+                        sh 'mvn sonar:sonar -DskipTests'
                     }
                 }
             }

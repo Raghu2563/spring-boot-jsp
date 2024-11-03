@@ -13,7 +13,7 @@ pipeline {
 
     parameters {
         booleanParam(name: 'PROD_BUILD', defaultValue: true, description: 'Enable this as a production build')
-        string(name: 'SERVER_IP', defaultValue: '15.206.89.145', description: 'Provide production server IP Address.')
+        string(name: 'SERVER_IP', defaultValue: '13.201.83.223', description: 'Provide production server IP Address.')
     }
 
     stages {
